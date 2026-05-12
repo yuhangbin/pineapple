@@ -3,7 +3,7 @@ package com.cboy.pineapple.ai.types;
 import java.util.Map;
 import java.util.Optional;
 
-sealed interface Content permits ImageContent, TextContent, ThinkingContent, ToolCall {
+public sealed interface Content permits ImageContent, TextContent, ThinkingContent, ToolCall {
     String type();
 }
 record TextContent(String text, Optional<String> textSignature) implements Content {

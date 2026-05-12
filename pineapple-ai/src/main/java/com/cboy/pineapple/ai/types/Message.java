@@ -48,9 +48,12 @@ record AssistantMessage(List<Content> content,
                         Optional<String> errorMessage,
                         long timestamp) implements Message {
     public String role() {
-        return "toolResult";
+        return "assistant";
     }
 
+    public boolean hasToolCalls() {
+        return content.stream().anyMatch(c -> c instanceof ToolCall);
+    }
 
 }
 
@@ -67,6 +70,7 @@ record ToolResultMessage(
     public String role() {
         return "toolResult";
     }
+
 }
 
 
