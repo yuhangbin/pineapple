@@ -15,9 +15,29 @@
     </modules>
 
     <properties>
+        <pineapple.version>1.0-SNAPSHOT</pineapple.version>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.cboy</groupId>
+                <artifactId>pineapple-ai</artifactId>
+                <version>${pineapple.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.cboy</groupId>
+                <artifactId>pineapple-agent-core</artifactId>
+                <version>${pineapple.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.cboy</groupId>
+                <artifactId>pineapple-tui</artifactId>
+                <version>${pineapple.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>
