@@ -9,7 +9,7 @@ import java.util.Optional;
 
 record BashExecutionMessage(String command, String output, Integer exitCode,
                             boolean cancelled, boolean truncated, Optional<String> fullOutputPath,
-                            long timestamp, Optional<Boolean> excludeFromContext) implements ExtensionMessage {
+                            long timestamp, Boolean excludeFromContext) implements ExtensionMessage {
     public String role() {
         return "bashExecution";
     }

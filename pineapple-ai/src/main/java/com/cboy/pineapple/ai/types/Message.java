@@ -7,9 +7,9 @@ import java.util.Optional;
 
 enum StopReason { STOP, LENGTH, TOOL_USE, ERROR, ABORTED }
 
-record Usage(double input, double output, double cacheRead, double cacheWrite, double totalTokens, Cost cost) {}
+record Usage(long input, long output, long cacheRead, long cacheWrite, long totalTokens, Cost cost) {}
 
-record Cost(double number, double output, double cacheRead, double cacheWrite, double total) {}
+record Cost(double input, double output, double cacheRead, double cacheWrite, double total) {}
 
 
 sealed public interface Message extends AgentMessage permits AssistantMessage, ToolResultMessage, UserMessage {
@@ -42,7 +42,7 @@ record AssistantMessage(List<Content> content,
                         String model,
                         Optional<String> responseModel,
                         Optional<String> responseId,
-                        List<AssistantMessageDiagnostic> diagnostics,
+                        Optional<List<AssistantMessageDiagnostic>> diagnostics,
                         Usage usage,
                         StopReason stopReason,
                         Optional<String> errorMessage,
@@ -63,7 +63,7 @@ record ToolResultMessage(
         String toolCallId,
         String toolName,
         List<Content> content,
-        Object details,
+        Optional<Object> details,
         boolean isError,
         long timestamp
 ) implements Message {
