@@ -1,8 +1,8 @@
-package com.cboy.pineapple.ai.types;
+package com.cboy.pineapple.ai.model;
 
 import java.util.Objects;
 
-record Api(String value) {
+public record Api(String value) {
     public static final Api OPENAI_COMPLETIONS = new Api("openai-completions");
     public static final Api MISTRAL_CONVERSATIONS = new Api("mistral-conversations");
     public static final Api OPENAI_RESPONSES = new Api("openai-responses");
@@ -14,11 +14,4 @@ record Api(String value) {
     public static final Api GOOGLE_VERTEX = new Api("google-vertex");
 
     public Api { Objects.requireNonNull(value); }
-}
-
-record Provider(String value) {
-    public static final Provider OPENAI = new Provider("openai");
-    public static final Provider ANTHROPIC = new Provider("anthropic");
-    public static final Provider GOOGLE = new Provider("google");
-    public static final Provider DEEPSEEK = new Provider("deepseek");
 }
