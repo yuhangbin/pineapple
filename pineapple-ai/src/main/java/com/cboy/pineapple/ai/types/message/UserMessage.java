@@ -1,7 +1,7 @@
-package com.cboy.pineapple.ai.message;
+package com.cboy.pineapple.ai.types.message;
 
-import com.cboy.pineapple.ai.content.Content;
-import com.cboy.pineapple.ai.content.TextContent;
+import com.cboy.pineapple.ai.types.content.Content;
+import com.cboy.pineapple.ai.types.content.TextContent;
 
 import java.util.List;
 import java.util.Optional;

@@ -1,4 +1,4 @@
-package com.cboy.pineapple.ai.model;
+package com.cboy.pineapple.ai.types.model;
 
 import java.util.Objects;
 

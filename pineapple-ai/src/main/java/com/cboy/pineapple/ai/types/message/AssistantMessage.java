@@ -1,10 +1,10 @@
-package com.cboy.pineapple.ai.message;
+package com.cboy.pineapple.ai.types.message;
 
-import com.cboy.pineapple.ai.content.Content;
-import com.cboy.pineapple.ai.content.ToolCall;
+import com.cboy.pineapple.ai.types.content.Content;
+import com.cboy.pineapple.ai.types.content.ToolCall;
 import com.cboy.pineapple.ai.diagnostic.AssistantMessageDiagnostic;
-import com.cboy.pineapple.ai.model.Api;
-import com.cboy.pineapple.ai.model.Provider;
+import com.cboy.pineapple.ai.types.model.Api;
+import com.cboy.pineapple.ai.types.model.Provider;
 
 import java.util.List;
 import java.util.Optional;

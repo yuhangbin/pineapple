@@ -1,4 +1,4 @@
-package com.cboy.pineapple.ai.content;
+package com.cboy.pineapple.ai.types.content;
 
 import java.util.Optional;
 

@@ -1,4 +1,4 @@
-package com.cboy.pineapple.ai.message;
+package com.cboy.pineapple.ai.types.message;
 
 public sealed interface AgentMessage permits Message, ExtensionMessage{
     long timestamp();

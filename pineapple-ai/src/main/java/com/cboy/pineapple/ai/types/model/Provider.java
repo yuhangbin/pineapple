@@ -1,4 +1,4 @@
-package com.cboy.pineapple.ai.model;
+package com.cboy.pineapple.ai.types.model;
 
 public record Provider(String value) {
     public static final Provider OPENAI = new Provider("openai");
