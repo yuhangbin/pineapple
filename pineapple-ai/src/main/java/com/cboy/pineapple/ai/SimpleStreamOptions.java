@@ -9,6 +9,14 @@ public class SimpleStreamOptions extends StreamOptions {
     private ThinkingLevel reasoning;
     private ThinkingBudgets thinkingBudgets;
 
+    public SimpleStreamOptions() {}
+
+    public SimpleStreamOptions(SimpleStreamOptions other) {
+        super(other);
+        this.reasoning = other.reasoning;
+        this.thinkingBudgets = other.thinkingBudgets;
+    }
+
     public ThinkingLevel getReasoning() {
         return reasoning;
     }

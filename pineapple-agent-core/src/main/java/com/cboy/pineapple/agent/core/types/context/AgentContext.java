@@ -1,7 +1,7 @@
 package com.cboy.pineapple.agent.core.types.context;
 
 import com.cboy.pineapple.ai.types.message.AgentMessage;
-import com.cboy.pineapple.ai.types.tool.AgentTool;
+import com.cboy.pineapple.agent.core.types.AgentTool;
 
 import java.util.List;
 

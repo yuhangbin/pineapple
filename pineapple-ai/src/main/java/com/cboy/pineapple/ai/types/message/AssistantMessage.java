@@ -27,4 +27,19 @@ public record AssistantMessage(List<Content> content,
     public boolean hasToolCalls() {
         return content.stream().anyMatch(c -> c instanceof ToolCall);
     }
+
+    public static AssistantMessage copy(AssistantMessage other) {
+        return new AssistantMessage(
+                other.content,
+                other.api,
+                other.provider,
+                other.model,
+                other.responseModel,
+                other.responseId,
+                other.diagnostics,
+                other.usage,
+                other.stopReason,
+                other.errorMessage,
+                other.timestamp);
+    }
 }

@@ -1,6 +1,7 @@
 package com.cboy.pineapple.agent.core.types;
 
 import com.cboy.pineapple.ai.SimpleStreamOptions;
+import com.cboy.pineapple.ai.types.AbortSignal;
 import com.cboy.pineapple.ai.types.message.AgentMessage;
 import com.cboy.pineapple.ai.types.message.Message;
 import com.cboy.pineapple.ai.types.model.Api;
@@ -103,17 +104,55 @@ public class AgentLoopConfig extends SimpleStreamOptions {
     /**
      * Called before a tool is executed, after arguments have been validated.
      *
-     * Return a non-null result to prevent execution. The loop emits an error tool result instead.
+     * Return {@code { block: true }} to prevent execution. The loop emits an error tool result instead.
+     * The hook receives the agent abort signal and is responsible for honoring it.
      */
-    Function<BeforeToolCallContext, BeforeToolCallResult> beforeToolCall;
+    BeforeToolCallHook beforeToolCall;
 
     /**
-     * Called after a tool finishes executing, before tool_execution_end and tool-result message events are emitted.
+     * Called after a tool finishes executing, before {@code tool_execution_end} and tool-result message events are emitted.
      *
-     * Return a non-null result to override parts of the executed tool result.
-     * Any absent fields keep their original values. No deep merge is performed.
+     * Return an {@link AfterToolCallResult} to override parts of the executed tool result:
+     * - {@code content} replaces the full content array
+     * - {@code details} replaces the full details payload
+     * - {@code isError} replaces the error flag
+     * - {@code terminate} replaces the early-termination hint
+     *
+     * Any omitted fields keep their original values. No deep merge is performed.
+     * The hook receives the agent abort signal and is responsible for honoring it.
      */
-    Function<AfterToolCallContext, AfterToolCallResult> afterToolCall;
+    AfterToolCallHook afterToolCall;
+
+    public AgentLoopConfig copy() {
+        AgentLoopConfig c = new AgentLoopConfig(this);
+        c.setModel(model)
+                .setConvertToLlm(convertToLlm)
+                .setTransformContext(transformContext)
+                .setGetApiKey(getApiKey)
+                .setShouldStopAfterTurn(shouldStopAfterTurn)
+                .setPrepareNextTurn(prepareNextTurn)
+                .setGetSteeringMessages(getSteeringMessages)
+                .setGetFollowUpMessages(getFollowUpMessages)
+                .setToolExecution(toolExecution)
+                .setBeforeToolCall(beforeToolCall)
+                .setAfterToolCall(afterToolCall);
+        return c;
+    }
+
+    public AgentLoopConfig(AgentLoopConfig other) {
+        super(other);
+        this.model = other.model;
+        this.convertToLlm = other.convertToLlm;
+        this.transformContext = other.transformContext;
+        this.getApiKey = other.getApiKey;
+        this.shouldStopAfterTurn = other.shouldStopAfterTurn;
+        this.prepareNextTurn = other.prepareNextTurn;
+        this.getSteeringMessages = other.getSteeringMessages;
+        this.getFollowUpMessages = other.getFollowUpMessages;
+        this.toolExecution = other.toolExecution;
+        this.beforeToolCall = other.beforeToolCall;
+        this.afterToolCall = other.afterToolCall;
+    }
 
     public List<AgentMessage> getSteeringMessage() {
         return getSteeringMessages != null ? getSteeringMessages.get() : Collections.emptyList();
@@ -160,11 +199,11 @@ public class AgentLoopConfig extends SimpleStreamOptions {
         return toolExecution;
     }
 
-    public Function<BeforeToolCallContext, BeforeToolCallResult> getBeforeToolCall() {
+    public BeforeToolCallHook getBeforeToolCall() {
         return beforeToolCall;
     }
 
-    public Function<AfterToolCallContext, AfterToolCallResult> getAfterToolCall() {
+    public AfterToolCallHook getAfterToolCall() {
         return afterToolCall;
     }
 
@@ -213,13 +252,23 @@ public class AgentLoopConfig extends SimpleStreamOptions {
         return this;
     }
 
-    public AgentLoopConfig setBeforeToolCall(Function<BeforeToolCallContext, BeforeToolCallResult> beforeToolCall) {
+    public AgentLoopConfig setBeforeToolCall(BeforeToolCallHook beforeToolCall) {
         this.beforeToolCall = beforeToolCall;
         return this;
     }
 
-    public AgentLoopConfig setAfterToolCall(Function<AfterToolCallContext, AfterToolCallResult> afterToolCall) {
+    public AgentLoopConfig setAfterToolCall(AfterToolCallHook afterToolCall) {
         this.afterToolCall = afterToolCall;
         return this;
+    }
+
+    @FunctionalInterface
+    public interface BeforeToolCallHook {
+        BeforeToolCallResult apply(BeforeToolCallContext context, AbortSignal signal);
+    }
+
+    @FunctionalInterface
+    public interface AfterToolCallHook {
+        AfterToolCallResult apply(AfterToolCallContext context, AbortSignal signal);
     }
 }

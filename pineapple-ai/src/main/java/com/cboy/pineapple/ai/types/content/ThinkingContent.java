@@ -8,6 +8,6 @@ import java.util.Optional;
 public record ThinkingContent(String thinking, Optional<String> thinkingSignature, boolean redacted) implements Content {
     @Override
     public String type() {
-        return "thinking";
+        return ContentTypeEnums.THINKING.getType();
     }
 }

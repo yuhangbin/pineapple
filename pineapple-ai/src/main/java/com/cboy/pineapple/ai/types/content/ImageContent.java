@@ -3,6 +3,6 @@ package com.cboy.pineapple.ai.types.content;
 public record ImageContent(String data, String mimeType) implements Content {
     @Override
     public String type() {
-        return "image";
+        return ContentTypeEnums.IMAGE.getType();
     }
 }

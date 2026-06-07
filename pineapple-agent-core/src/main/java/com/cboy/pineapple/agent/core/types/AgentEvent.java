@@ -2,6 +2,7 @@ package com.cboy.pineapple.agent.core.types;
 
 import com.cboy.pineapple.ai.types.message.AgentMessage;
 import com.cboy.pineapple.ai.types.message.ToolResultMessage;
+import com.cboy.pineapple.ai.utils.AssistantMessageEvent;
 
 import java.util.List;
 

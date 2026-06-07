@@ -1,4 +1,4 @@
-package com.cboy.pineapple.agent.core.types;
+package com.cboy.pineapple.ai.types;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
