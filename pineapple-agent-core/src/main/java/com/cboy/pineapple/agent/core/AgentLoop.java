@@ -13,7 +13,7 @@ import com.cboy.pineapple.ai.types.content.ToolCall;
 import com.cboy.pineapple.ai.types.message.*;
 import com.cboy.pineapple.ai.utils.AssistantMessageEvent;
 import com.cboy.pineapple.ai.utils.AssistantMessageEventStream;
-import com.cboy.pineapple.ai.utils.ValidationService;
+import com.cboy.pineapple.ai.utils.ValidationUtils;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -316,7 +316,7 @@ public class AgentLoop {
         }
         try {
             AgentToolCall preparedToolCall = prepareToolCallArguments(tool, toolCall);
-            var validateArgs = ValidationService.validateToolArguments(tool, preparedToolCall.toolCall());
+            var validateArgs = ValidationUtils.validateToolArguments(tool, preparedToolCall.toolCall());
             if (config.getBeforeToolCall() != null) {
                 BeforeToolCallResult beforeResult = config.getBeforeToolCall().apply(
                         new BeforeToolCallContext(assistantMessage, toolCall, validateArgs, currentContext),
@@ -350,9 +350,29 @@ public class AgentLoop {
         return AgentToolResult.of(List.of(new TextContent(message, Optional.empty())));
     }
 
-    private ExecutedToolCallOutcome executePreparedToolCall(ToolCallPreparation.Prepared preparation, AbortSignal signal, AgentEventSink emit) {
-        // TODO: implement
-        return new ExecutedToolCallOutcome(AgentToolResult.of(List.of(new TextContent("not implemented", Optional.empty()))), false);
+    private ExecutedToolCallOutcome executePreparedToolCall(ToolCallPreparation.Prepared prepared, AbortSignal signal, AgentEventSink emit) {
+        List<CompletableFuture<Void>> updateEvents = new ArrayList<>();
+
+        try {
+            AgentToolResult result = prepared.tool.execute(
+                    prepared.toolCall.id(),
+                    prepared.args,
+                    signal,
+                    partialResult -> updateEvents.add(
+                            emit.apply(new AgentEvent.ToolExecutionUpdate(
+                                    prepared.toolCall.id(),
+                                    prepared.toolCall.name(),
+                                    prepared.toolCall.arguments(),
+                                    partialResult
+                            ))
+                    )
+            ).join();
+            CompletableFuture.allOf(updateEvents.toArray(CompletableFuture[]::new)).join();
+            return new ExecutedToolCallOutcome(result, false);
+        } catch (Throwable e) {
+            CompletableFuture.allOf(updateEvents.toArray(CompletableFuture[]::new)).join();
+            return new ExecutedToolCallOutcome(createErrorToolResult(e.getMessage()), true);
+        }
     }
 
     private FinalizedToolCallOutcome finalizeExecutedToolCall(AgentContext currentContext, AssistantMessage assistantMessage, ToolCallPreparation.Prepared prepared,
