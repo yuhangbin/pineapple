@@ -18,7 +18,6 @@ import com.networknt.schema.ValidationMessage;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -26,12 +25,12 @@ import java.util.stream.Collectors;
  * Validates tool call arguments against JSON Schema, with type coercion
  * for plain JSON Schema primitives.
  */
-public final class ValidationService {
+public final class ValidationUtils {
 
     private static final JsonSchemaFactory SCHEMA_FACTORY =
             JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012);
 
-    private ValidationService() {}
+    private ValidationUtils() {}
 
     /**
      * Validates tool call arguments against the tool's JSON Schema.

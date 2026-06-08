@@ -13,7 +13,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class ValidationServiceTest {
+class ValidationUtilsTest {
 
     private static Tool tool(String schemaJson) {
         return tool("testTool", schemaJson);
@@ -36,11 +36,11 @@ class ValidationServiceTest {
     }
 
     private Map<String, Object> validate(String schema, Map<String, Object> input) {
-        return ValidationService.validateToolArguments(tool(schema), call("testTool", input));
+        return ValidationUtils.validateToolArguments(tool(schema), call("testTool", input));
     }
 
     private Map<String, Object> validate(String schema, String toolName, Map<String, Object> input) {
-        return ValidationService.validateToolArguments(tool(toolName, schema), call(toolName, input));
+        return ValidationUtils.validateToolArguments(tool(toolName, schema), call(toolName, input));
     }
 
     // ══════════════════════════════════════════════════════════════════
@@ -444,7 +444,7 @@ class ValidationServiceTest {
         @Test @DisplayName("9.3 nullSchema_skipsValidation")
         void nullSchema_skipsValidation() {
             Tool t = Tool.of("test", "desc", null);
-            var r = ValidationService.validateToolArguments(t, call("test", args("a", 1)));
+            var r = ValidationUtils.validateToolArguments(t, call("test", args("a", 1)));
             assertEquals(1, r.get("a"));
         }
 
@@ -499,14 +499,14 @@ class ValidationServiceTest {
         @Test @DisplayName("10.1 toolFound_validates")
         void toolFound_validates() {
             Tool t = tool("read", "{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"}},\"required\":[\"path\"]}");
-            var r = ValidationService.validateToolCall(List.of(t), call("read", args("path", "/tmp")));
+            var r = ValidationUtils.validateToolCall(List.of(t), call("read", args("path", "/tmp")));
             assertEquals("/tmp", r.get("path"));
         }
 
         @Test @DisplayName("10.2 toolNotFound_throws")
         void toolNotFound_throws() {
             Tool t = tool("read", "{\"type\":\"object\"}");
-            var ex = assertThrows(IllegalArgumentException.class, () -> ValidationService.validateToolCall(List.of(t), call("write", args())));
+            var ex = assertThrows(IllegalArgumentException.class, () -> ValidationUtils.validateToolCall(List.of(t), call("write", args())));
             assertTrue(ex.getMessage().contains("Tool \"write\" not found"));
         }
 
@@ -515,7 +515,7 @@ class ValidationServiceTest {
             Tool read = tool("read", "{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"}},\"required\":[\"path\"]}");
             Tool write = tool("write", "{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"content\":{\"type\":\"string\"}},\"required\":[\"path\",\"content\"]}");
             Tool delete = tool("delete", "{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"}},\"required\":[\"path\"]}");
-            var r = ValidationService.validateToolCall(List.of(read, write, delete), call("write", args("path", "/tmp", "content", "hello")));
+            var r = ValidationUtils.validateToolCall(List.of(read, write, delete), call("write", args("path", "/tmp", "content", "hello")));
             assertEquals("/tmp", r.get("path"));
             assertEquals("hello", r.get("content"));
         }
