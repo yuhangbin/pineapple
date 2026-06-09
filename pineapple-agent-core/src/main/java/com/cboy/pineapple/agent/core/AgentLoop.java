@@ -309,8 +309,40 @@ public class AgentLoop {
     private CompletableFuture<ExecutedToolCallBatch> executeToolCallsParallel(
             AgentContext currentContext, AssistantMessage assistantMessage, List<ToolCall> toolCalls, AgentLoopConfig config,
             AbortSignal signal, AgentEventSink emit) {
-        // TODO: implement parallel execution
-        return CompletableFuture.completedFuture(new ExecutedToolCallBatch(List.of(), false));
+        List<CompletableFuture<FinalizedToolCallOutcome>> futures = new ArrayList<>(toolCalls.size());
+
+        for (ToolCall toolCall : toolCalls) {
+            emit.apply(new AgentEvent.ToolExecutionStart(toolCall.id(), toolCall.name(), toolCall.arguments()));
+            AgentToolCall agentToolCall = new AgentToolCall(toolCall);
+            ToolCallPreparation preparation = prepareToolCall(currentContext, assistantMessage, agentToolCall, config, signal);
+
+            if (preparation instanceof ToolCallPreparation.Immediate(AgentToolResult result, boolean isError)) {
+                FinalizedToolCallOutcome finalized = new FinalizedToolCallOutcome(agentToolCall, result, isError);
+                emitToolExecutionEnd(finalized, emit);
+                futures.add(CompletableFuture.completedFuture(finalized));
+            } else {
+                ToolCallPreparation.Prepared prepared = (ToolCallPreparation.Prepared) preparation;
+                futures.add(CompletableFuture.supplyAsync(() -> {
+                    ExecutedToolCallOutcome executed = executePreparedToolCall(prepared, signal, emit);
+                    FinalizedToolCallOutcome finalized = finalizeExecutedToolCall(currentContext, assistantMessage, prepared, executed, config, signal);
+                    emitToolExecutionEnd(finalized, emit);
+                    return finalized;
+                }));
+            }
+        }
+
+        List<FinalizedToolCallOutcome> orderedFinalizedCalls = futures.stream()
+                .map(CompletableFuture::join)
+                .toList();
+
+        List<ToolResultMessage> messages = new LinkedList<>();
+        for (FinalizedToolCallOutcome finalized : orderedFinalizedCalls) {
+            ToolResultMessage toolResultMessage = createToolResultMessage(finalized);
+            emitToolResultMessage(toolResultMessage, emit);
+            messages.add(toolResultMessage);
+        }
+
+        return CompletableFuture.completedFuture(new ExecutedToolCallBatch(messages, shouldTerminateToolBatch(orderedFinalizedCalls)));
     }
 
     private ToolCallPreparation prepareToolCall(AgentContext currentContext, AssistantMessage assistantMessage, AgentToolCall toolCall, AgentLoopConfig config, AbortSignal signal) {
