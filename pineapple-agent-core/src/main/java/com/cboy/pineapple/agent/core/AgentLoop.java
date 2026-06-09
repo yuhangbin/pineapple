@@ -287,7 +287,14 @@ public class AgentLoop {
     }
 
     private ToolResultMessage createToolResultMessage(FinalizedToolCallOutcome finalized) {
-        return null;
+        return new ToolResultMessage(
+                finalized.toolCall.id(),
+                finalized.toolCall.name(),
+                finalized.result.content(),
+                finalized.result.details(),
+                finalized.isError,
+                System.currentTimeMillis()
+        );
     }
 
     private void emitToolExecutionEnd(FinalizedToolCallOutcome finalized, AgentEventSink emit) {
@@ -377,8 +384,32 @@ public class AgentLoop {
 
     private FinalizedToolCallOutcome finalizeExecutedToolCall(AgentContext currentContext, AssistantMessage assistantMessage, ToolCallPreparation.Prepared prepared,
                                                               ExecutedToolCallOutcome executed, AgentLoopConfig config, AbortSignal signal) {
-        // TODO: implement
-        return new FinalizedToolCallOutcome(prepared.toolCall(), executed.result(), executed.isError());
+        AgentToolResult result = executed.result;
+        boolean isError = executed.isError;
+        if (config.getAfterToolCall() != null) {
+            try {
+                AfterToolCallResult afterResult = config.getAfterToolCall().apply(
+                        new AfterToolCallContext(assistantMessage, prepared.toolCall, prepared.args,
+                                result, isError, currentContext),
+                        signal
+                );
+                if (afterResult != null) {
+                    result = new AgentToolResult(
+                            afterResult.content().orElse(result.content()),
+                            afterResult.details().isPresent() ? afterResult.details() : result.details(),
+                            afterResult.terminate().isPresent() ? afterResult.terminate().get() : result.terminate()
+                    );
+                    if (afterResult.isError().isPresent()) {
+                        isError = afterResult.isError().get();
+                    }
+                }
+            } catch (Exception e) {
+                result = createErrorToolResult(e.getMessage());
+                isError = true;
+            }
+        }
+
+        return new FinalizedToolCallOutcome(prepared.toolCall(), result, isError);
     }
 
     private Optional<AgentTool> findTool(AgentContext context, String name) {
