@@ -21,14 +21,31 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
 
 public class AgentLoop {
 
 
+    public CompletableFuture<List<AgentMessage>> runAgentLoop(List<AgentMessage> prompts, AgentContext context, AgentLoopConfig config,
+                             AgentEventSink emit, AbortSignal signal, StreamFn streamFn) {
+        List<AgentMessage> newMessages = new LinkedList<>(prompts);
+        List<AgentMessage> allMessages = new LinkedList<>(prompts);
+        allMessages.addAll(context.getMessages());
+        AgentContext currentContext = new AgentContext(context.getSystemPrompt(), allMessages, context.getTools());
+
+        emit.apply(new AgentEvent.AgentStart());
+        emit.apply(new AgentEvent.TurnStart());
+
+        for (AgentMessage prompt : prompts) {
+            emit.apply(new AgentEvent.MessageStart(prompt));
+            emit.apply(new AgentEvent.MessageEnd(prompt));
+        }
+
+        runLoop(currentContext, newMessages, config, signal, emit, streamFn);
+        return CompletableFuture.completedFuture(newMessages);
+    }
     public void runLoop(AgentContext initialContext, List<AgentMessage> newMessages, AgentLoopConfig initialConfig,
-                          AbortSignal signal, AgentEventSink emit, StreamFn streamFn) throws ExecutionException, InterruptedException {
+                          AbortSignal signal, AgentEventSink emit, StreamFn streamFn) {
         AgentContext currentContext = initialContext;
         AgentLoopConfig config = initialConfig;
         boolean firstTurn = true;
@@ -60,7 +77,7 @@ public class AgentLoop {
 
                 // Stream assistant response
                 CompletableFuture<AssistantMessage> message = streamAssistantResponse(currentContext, config, signal, emit, streamFn);
-                AssistantMessage assistantMessage = message.get();
+                AssistantMessage assistantMessage = join(message);
                 newMessages.add(assistantMessage);
 
                 if (StopReason.ERROR.equals(assistantMessage.stopReason()) || StopReason.ABORTED.equals(assistantMessage.stopReason())) {
@@ -80,8 +97,9 @@ public class AgentLoop {
                 hasMoreToolCalls = false;
                 if (!toolCalls.isEmpty()) {
                     CompletableFuture<ExecutedToolCallBatch> executedToolCallBatch = executeToolCalls(currentContext, assistantMessage, config, signal, emit);
-                    toolResults.addAll(executedToolCallBatch.get().getMessages());
-                    hasMoreToolCalls = !executedToolCallBatch.get().isTerminate();
+                    ExecutedToolCallBatch batch = join(executedToolCallBatch);
+                    toolResults.addAll(batch.getMessages());
+                    hasMoreToolCalls = !batch.isTerminate();
 
                     for (ToolResultMessage toolResult : toolResults) {
                         currentContext.getMessages().add(toolResult);
@@ -129,7 +147,7 @@ public class AgentLoop {
     }
 
     public CompletableFuture<AssistantMessage> streamAssistantResponse(AgentContext context, AgentLoopConfig config, AbortSignal signal,
-                                                                      AgentEventSink emit, StreamFn streamFn) throws ExecutionException, InterruptedException {
+                                                                      AgentEventSink emit, StreamFn streamFn) {
         // Apply context transform if configured (AgentMessage[] → AgentMessage[])
         List<AgentMessage> messages = context.getMessages();
         if (config.getTransformContext() != null) {
@@ -211,8 +229,8 @@ public class AgentLoop {
             emit.apply(new AgentEvent.MessageUpdate(AssistantMessage.copy(partialMessage), event));
         }
     }
-    private CompletableFuture<AssistantMessage> handleEndEvent(AssistantMessageEventStream response, boolean addedPartial, AgentContext context, AgentEventSink emit) throws ExecutionException, InterruptedException {
-        AssistantMessage finalMessage = response.result().get();
+    private CompletableFuture<AssistantMessage> handleEndEvent(AssistantMessageEventStream response, boolean addedPartial, AgentContext context, AgentEventSink emit) {
+        AssistantMessage finalMessage = join(response.result());
         if (addedPartial) {
             context.getMessages().set(context.getMessages().size() - 1, finalMessage);
         } else {
@@ -410,7 +428,7 @@ public class AgentLoop {
             return new ExecutedToolCallOutcome(result, false);
         } catch (Throwable e) {
             CompletableFuture.allOf(updateEvents.toArray(CompletableFuture[]::new)).join();
-            return new ExecutedToolCallOutcome(createErrorToolResult(e.getMessage()), true);
+            throw new ToolExecutionException("Tool '" + prepared.toolCall.name() + "' execution failed: " + e.getMessage(), e);
         }
     }
 
@@ -448,6 +466,16 @@ public class AgentLoop {
         return context.getTools().stream()
                 .filter(t -> t.name().equals(name))
                 .findFirst();
+    }
+
+    private <T> T join(CompletableFuture<T> future) {
+        try {
+            return future.get();
+        } catch (InterruptedException e) {
+            throw new AgentLoopException("Agent loop interrupted", e);
+        } catch (java.util.concurrent.ExecutionException e) {
+            throw new AgentLoopException("Agent loop execution failed", e.getCause());
+        }
     }
 
     private sealed interface ToolCallPreparation {
