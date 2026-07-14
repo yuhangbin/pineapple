@@ -56,14 +56,24 @@ public class EventStream<T, R> implements Iterable<T> {
 
     /** Signal end without resolving the final result. */
     public void end() {
+        if (done) return;
         done = true;
         queue.offer(POISON);
     }
 
     /** Signal end and resolve the final result. */
     public void end(R result) {
+        if (done) return;
         done = true;
         finalResult.complete(result);
+        queue.offer(POISON);
+    }
+
+    /** Signal failure and unblock both result consumers and iterators. */
+    public void fail(Throwable error) {
+        if (done) return;
+        done = true;
+        finalResult.completeExceptionally(error);
         queue.offer(POISON);
     }
 
@@ -100,7 +110,7 @@ public class EventStream<T, R> implements Iterable<T> {
             @SuppressWarnings("unchecked")
             @Override
             public T next() {
-                if (!fetched) throw new NoSuchElementException();
+                if (!fetched && !hasNext()) throw new NoSuchElementException();
                 fetched = false;
                 return (T) nextItem;
             }

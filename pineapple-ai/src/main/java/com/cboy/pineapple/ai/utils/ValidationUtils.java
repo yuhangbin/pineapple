@@ -353,9 +353,9 @@ public final class ValidationUtils {
 
     private static JsonNode coerceAnyOf(JsonNode value, JsonNode anyOfSchemas) {
         for (JsonNode subSchema : anyOfSchemas) {
-            JsonNode coerced = coerceWithSchema(value, subSchema);
-            if (coerced == value || !coerced.equals(value)) {
-                // Attempt: see if the coerced value validates against this branch
+            JsonNode coerced = coerceWithSchema(value.deepCopy(), subSchema);
+            JsonSchema schema = SCHEMA_FACTORY.getSchema(subSchema);
+            if (schema.validate(coerced).isEmpty()) {
                 return coerced;
             }
         }
