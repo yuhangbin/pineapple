@@ -12,12 +12,12 @@ public record UserMessage(List<Content> content, long timestamp) implements Mess
         return "user";
     }
 
-    public static UserMessage of(String text, long timestamp) {
-        return new UserMessage(List.of(new TextContent(text, Optional.empty())), timestamp);
+    public static UserMessage of(String text) {
+        return new UserMessage(List.of(new TextContent(text, Optional.empty())), System.currentTimeMillis());
     }
 
-    public static UserMessage of(List<Content> blocks, long timestamp) {
-        return new UserMessage(blocks, timestamp);
+    public static UserMessage of(List<Content> blocks) {
+        return new UserMessage(blocks, System.currentTimeMillis());
     }
 
     public boolean isPlainText() {
